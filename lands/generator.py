@@ -10,6 +10,7 @@ import draw
 import drawing_functions
 import os
 from world import *
+import protobuf.World_pb2
 
 from PIL import Image
 
@@ -23,8 +24,21 @@ def draw_oldmap(world, filename, resize_factor):
     drawing_functions.draw_oldmap_on_pixels(world, pixels, resize_factor)
     img.save(filename)
 
+def to_protobuf_world(world):
+    p_world = protobuf.World_pb2.World()
+    p_world.name   = world.name
+    p_world.width  = world.width
+    p_world.height = world.height
 
-def generate_world(seed, world_name, output_dir, width, height, step, num_plates=10, map_side=512):
+    p_heightmap = p_world.heightMap
+    for y in xrange(world.height):
+        row = p_heightmap.rows.add()
+        for x in xrange(world.width):
+            row.cells.append(world.elevation['data'][y][x])
+
+    return p_world
+
+def generate_world(seed, world_name, output_dir, width, height, step, world_format, num_plates=10, map_side=512):
     w = world_gen(world_name, seed, True, width, height, step, num_plates=num_plates, map_side=map_side)
 
     print('')  # empty line
@@ -33,7 +47,13 @@ def generate_world(seed, world_name, output_dir, width, height, step, num_plates
     # Save data
     filename = "%s/%s.world" % (output_dir, world_name)
     with open(filename, "w") as f:
-        pickle.dump(w, f, pickle.HIGHEST_PROTOCOL)
+        if world_format == 'pickle':
+            pickle.dump(w, f, pickle.HIGHEST_PROTOCOL)
+        elif world_format == 'protobuf':
+            protobuf_world = to_protobuf_world(w)
+            f.write(protobuf_world.SerializeToString())
+        else:
+            print("Unknown format '%s', not saving " % world_format)
     print("* world data saved in '%s'" % filename)
 
     # Generate images
@@ -124,6 +144,7 @@ def main():
     parser = OptionParser()
     parser.add_option('-o', '--output', dest='output_dir', help="generate files in OUTPUT", metavar="FILE", default='.')
     parser.add_option('-n', '--worldname', dest='world_name', help="set WORLDNAME", metavar="WORLDNAME")
+    parser.add_option('-b', '--protocol-buffer', dest='protobuf', action="store_true", help="save using protocol buffer", default=False)
     parser.add_option('-s', '--seed', dest='seed', help="use SEED to initialize the pseudo-random generation",
                       metavar="SEED")
     parser.add_option('-t', '--step', dest='step',
@@ -192,6 +213,10 @@ def main():
     else:
         step = Step.get_by_name("full")
 
+    world_format = 'pickle'
+    if options.protobuf:
+        world_format = 'protobuf'
+
     generation_operation = (operation == 'world') or (operation == 'plates')
 
     resize_factor = int(options.resize_factor)
@@ -205,6 +230,7 @@ def main():
         print(' height            : %i' % height)
         print(' plates resolution : %i' % plates_resolution)
         print(' number of plates  : %i' % number_of_plates)
+        print(' world format      : %s' % world_format)
     print(' operation         : %s generation' % operation)
     if generation_operation:
         print(' step              : %s' % step.name)
@@ -214,7 +240,7 @@ def main():
     print('')  # empty line
     print('starting (it could take a few minutes) ...')
     if operation == 'world':
-        generate_world(seed, world_name, options.output_dir, width, height, step, num_plates=number_of_plates, map_side=plates_resolution)
+        generate_world(seed, world_name, options.output_dir, width, height, step, world_format, num_plates=number_of_plates, map_side=plates_resolution)
     elif operation == 'plates':
         generate_plates(seed, world_name, options.output_dir, width, height, num_plates=number_of_plates, map_side=plates_resolution)
     elif operation == 'ancient_map':
