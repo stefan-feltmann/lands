@@ -8,15 +8,17 @@ from draw import draw_biome, draw_precipitation, draw_temperature_levels
 import geo
 import draw
 import drawing_functions
+import gis_functions
 import os
 from world import *
+import sqlite3
 execfile('lands/version.py')
 
 from PIL import Image
 
 VERSION = __version__
 
-OPERATIONS = 'world|plates|ancient_map'
+OPERATIONS = 'world|plates|ancient_map|gis'
 
 
 def draw_oldmap(world, filename, resize_factor):
@@ -25,6 +27,12 @@ def draw_oldmap(world, filename, resize_factor):
     drawing_functions.draw_oldmap_on_pixels(world, pixels, resize_factor)
     img.save(filename)
 
+def generate_gis_db(world, map_filename):
+    conn = sqlite3.connect(map_filename)
+    gis_functions.create_gis_database(world)
+    # for x in world.width:
+    #     for y in world.height:
+    #         if world
 
 def generate_world(seed, world_name, output_dir, width, height, step, num_plates=10, map_side=512):
     w = world_gen(world_name, seed, True, width, height, step, num_plates=num_plates, map_side=map_side)
@@ -127,6 +135,14 @@ def check_step(step_name):
 def operation_ancient_map(world, map_filename, resize_factor):
     draw_oldmap(world, map_filename, resize_factor)
     print("+ ancient map generated in '%s'" % map_filename)
+
+
+
+
+
+def operation_gis_map(world, map_filename):
+    generate_gis_db(world, map_filename)
+    print("+ gis database generated in '%s'" % map_filename)
 
 
 def main():
@@ -251,13 +267,22 @@ def main():
         generate_plates(seed, world_name, options.output_dir, width, height, num_plates=number_of_plates, map_side=plates_resolution)
     elif operation == 'ancient_map':
         if not options.world_file:
-            usage("For generating an ancient map is necessary to specify the world to be used (-w option)")
+            usage("For generating an ancient map it is necessary to specify the world to be used (-w option)")
         world = World.from_pickle_file(options.world_file)
         if options.generated_file:
             map_filename = options.generated_file
         else:
             map_filename = "ancient_map_%s.png" % world.name
         operation_ancient_map(world, map_filename, resize_factor)
+    elif operation == 'gis':
+        if not options.world_file:
+            usage("For generating a gis database it is necessary to specify the world to be used (-w option)")
+        world = World.from_pickle_file(options.world_file)
+        if options.generated_file:
+            map_filename = options.generated_file
+        else:
+            map_filename = "git_%s.db" % world.name
+        operation_gis_map(world, map_filename)
     else:
         raise Exception('Unknown operation: valid operations are %s' % OPERATIONS)
 
