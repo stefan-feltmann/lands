@@ -1,4 +1,5 @@
 from lands import draw
+from shapely.geometry import Polygon, LineString, Point
 
 __author__ = 'Stefan Feltmann'
 
@@ -8,19 +9,13 @@ def create_vector(x, y, temp_world):
     pass
 
 def find_land_borders(world):
-    _ocean   = [[False for x in xrange(world.width)] for y in xrange(world.height)]
-    # _borders = [[False for x in xrange(world.width)] for y in xrange(world.height)]
-    for y in xrange(world.height):
-        for x in xrange(world.width):
-            if world.ocean[y][x]:
-                _ocean[y][x] = True
 
-    def my_is_ocean(pos):
+    def is_ocean(pos):
         x, y = pos
         return world.ocean[x][y]
 
     def is_not_ocean(pos):
-        return not my_is_ocean(pos)
+        return not is_ocean(pos)
 
     y = 0
     x = 0
@@ -29,11 +24,8 @@ def find_land_borders(world):
     known_points = []
 
     while y < world.height:
-        print "Y at " + str(y)
         while x < world.width:
             if is_not_ocean((x, y)) and (x, y) not in known_points:
-                print "X at " + str(x)
-                print "Land Mass #" + str(len(borders) + 1)
                 nx, ny = x, y
                 border = []
                 stack = []
@@ -48,10 +40,6 @@ def find_land_borders(world):
                             stack.append(i)
                             known_points.append(i)
                     nx, ny = stack.pop()
-                # for i in border:
-                #     nx, ny = i
-                #     _ocean[nx][ny] = True
-                #     temp_world.ocean[nx][ny] = True
                 borders.append(border)
                 x, y = 0, 0
             else:
@@ -76,8 +64,28 @@ def test_find(borders, world):
     print("* ocean image generated in '%s'" % filename)
 
 
+def make_polygons(borders):
+    poly_borders = []
+    lines = []
+    points = []
+    for landmass in borders:
+        # print len(landmass)
+        if len(landmass) > 3:
+            new_polygon = Polygon(landmass)
+            poly_borders.append(new_polygon)
+        elif len(landmass) > 1:
+            new_line = LineString(landmass)
+            lines.append(new_line)
+        else:
+            new_point = Point(landmass)
+            points.append(new_point)
+    return poly_borders, points, lines
+
+
 def create_gis_database(world):
     borders = find_land_borders(world)
-    print len(borders)
-    print borders
-    test_find(borders, world)
+    poly_borders, points, lines = make_polygons(borders)
+    print len(poly_borders)
+    print len(points)
+    print len(lines)
+    # test_find(borders, world)
