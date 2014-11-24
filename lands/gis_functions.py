@@ -17,7 +17,7 @@ def find_land_borders(world):
 
     def my_is_ocean(pos):
         x, y = pos
-        return _ocean[y][x]
+        return world.ocean[x][y]
 
     def is_not_ocean(pos):
         return not my_is_ocean(pos)
@@ -31,7 +31,7 @@ def find_land_borders(world):
     while y < world.height:
         print "Y at " + str(y)
         while x < world.width:
-            if not world.tiles_around_factor(1, (x, y), radius=1, predicate=my_is_ocean) and (x, y) not in known_points:
+            if is_not_ocean((x, y)) and (x, y) not in known_points:
                 print "X at " + str(x)
                 print "Land Mass #" + str(len(borders) + 1)
                 nx, ny = x, y
@@ -62,7 +62,7 @@ def find_land_borders(world):
 
 def test_find(borders, world):
     world_name = world.name
-    output_dir = "./"
+    output_dir = "."
     ocean = [[True for x in xrange(world.width)] for y in xrange(world.height)]
     for landmass in borders:
         for i in landmass:
@@ -71,6 +71,8 @@ def test_find(borders, world):
     # Generate images
     filename = '%s/%s_ocean.png' % (output_dir, world_name)
     draw.draw_ocean(ocean, filename)
+    filename = '%s/%s_ocean.png' % (output_dir, (world_name + "2"))
+    draw.draw_ocean(world.ocean, filename)
     print("* ocean image generated in '%s'" % filename)
 
 
