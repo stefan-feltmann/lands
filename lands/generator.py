@@ -28,8 +28,8 @@ def draw_oldmap(world, filename, resize_factor):
     img.save(filename)
 
 def generate_gis_db(world, map_filename):
-    conn = sqlite3.connect(map_filename)
-    gis_functions.create_gis_database(world)
+    # conn = sqlite3.connect(map_filename)
+    gis_functions.create_gis_database(world, map_filename)
     # for x in world.width:
     #     for y in world.height:
     #         if world
@@ -281,7 +281,7 @@ def main():
         if options.generated_file:
             map_filename = options.generated_file
         else:
-            map_filename = "git_%s.db" % world.name
+            map_filename = "git_%s" % world.name
         operation_gis_map(world, map_filename)
     else:
         raise Exception('Unknown operation: valid operations are %s' % OPERATIONS)

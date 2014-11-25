@@ -48,3 +48,8 @@ nosetests.xml
 
 #database and gis
 *.db
+*.cpg
+*.dbf
+*.shp
+*.shx
+

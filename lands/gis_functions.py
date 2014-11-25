@@ -1,5 +1,7 @@
 from lands import draw
-from shapely.geometry import Polygon, LineString, Point
+from shapely.geometry import Polygon, LineString, Point, mapping
+import fiona
+import shapefile
 
 __author__ = 'Stefan Feltmann'
 
@@ -82,9 +84,58 @@ def make_polygons(borders):
     return poly_borders, points, lines
 
 
-def create_gis_database(world):
+def create_gis_database(world, map_filename):
     borders = find_land_borders(world)
     poly_borders, points, lines = make_polygons(borders)
+
+    poly_border_schema = {
+        'geometry': 'Polygon',
+        'properties': {'id': 'int'},
+    }
+
+    line_border_schema = {
+        'geometry': 'Line',
+        'properties': {'id': 'int'},
+    }
+
+    point_border_schema = {
+        'geometry': 'Point',
+        'properties': {'id': 'int'},
+    }
+
+    if len(poly_borders) > 0:
+        with fiona.open(map_filename + "_poly_border.shp", 'w', 'ESRI Shapefile', poly_border_schema) as c:
+            for i in xrange(len(poly_borders)):
+                poly = poly_borders[i]
+                ## If there are multiple geometries, put the "for" loop here
+                c.write({
+                    'geometry': mapping(poly),
+                    'properties': {'id': i},
+                })
+            c.close()
+
+    if len(lines) > 0:
+        with fiona.open(map_filename + "_line_border.shp", 'w', 'ESRI Shapefile', line_border_schema) as c:
+            for i in xrange(len(lines)):
+                line = lines[i]
+                ## If there are multiple geometries, put the "for" loop here
+                c.write({
+                    'geometry': mapping(line),
+                    'properties': {'id': i},
+                })
+            c.close()
+
+    if len(points) > 0:
+        with fiona.open(map_filename + "_point_border.shp", 'w', 'ESRI Shapefile', point_border_schema) as c:
+            for i in xrange(len(points)):
+                point = points[i]
+                ## If there are multiple geometries, put the "for" loop here
+                c.write({
+                    'geometry': mapping(point),
+                    'properties': {'id': i},
+                })
+            c.close()
+
     print len(poly_borders)
     print len(points)
     print len(lines)
