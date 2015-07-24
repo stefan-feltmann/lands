@@ -1,4 +1,4 @@
-images
+# images
 *.png
 
 venv
@@ -45,3 +45,7 @@ nosetests.xml
 *.iml
 
 *.world
+
+generator.spec
+*.orig
+*.rej

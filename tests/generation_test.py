@@ -1,35 +1,42 @@
 import unittest
-from lands.geo import *
-from lands.plates import *
-from lands.generator import *
-import tempfile
+from worldengine.plates import Step, center_land, world_gen
+from worldengine.world import World
 
-class TestGeneration(unittest.TestCase):
+from tests.draw_test import TestBase
+
+
+class TestGeneration(TestBase):
 
     def setUp(self):
-        pass
+        super(TestGeneration, self).setUp()
 
-    def test_can_generate(self):
-        w = world_gen("Dummy", 1, False, 100, 100, Step.get_by_name("full"))
+    def test_world_gen_does_not_explode_badly(self):
+        # FIXME remove me when proper tests are in place
+        # Very stupid test that just verify nothing explode badly
+        world_gen("Dummy", 32, 16, 1, step=Step.get_by_name("full"))
 
-    def test_serialization(self):
-        w = world_gen("Dummy", 1, False, 10, 10, Step.get_by_name("full"))
-        dumped = pickle.dumps(w, pickle.HIGHEST_PROTOCOL)
-        loaded = pickle.loads(dumped)
-        self.assertEquals(w, loaded)
+    @staticmethod
+    def _mean_elevation_at_borders(world):
+        borders_total_elevation = 0.0
+        for y in range(world.height):
+            borders_total_elevation += world.elevation_at((0, y))
+            borders_total_elevation += world.elevation_at((world.width - 1, y))
+        for x in range(1, world.width - 1):
+            borders_total_elevation += world.elevation_at((x, 0))
+            borders_total_elevation += world.elevation_at((x, world.height - 1))
 
-    def test_serialization_on_file(self):
-        fd, filename = tempfile.mkstemp()
-        try:
-            w = world_gen("Dummy", 1, False, 10, 10, Step.get_by_name("full"))
-            with open(filename, "w") as f:
-                pickle.dump(w, f, pickle.HIGHEST_PROTOCOL)
-            with open(filename, "r") as f:
-                loaded = pickle.load(f)
-            self.assertEquals(w, loaded)
-        finally:
-            os.close(fd)
-            os.remove(filename)
+        n_cells_on_border = world.width * 2 + world.height * 2 - 4
+        return borders_total_elevation / n_cells_on_border
+
+    def test_center_land(self):
+        w = World.from_pickle_file("%s/plates_279.world" % self.tests_data_dir)
+
+        # We want to have less land than before at the borders
+        el_before = TestGeneration._mean_elevation_at_borders(w)
+        center_land(w)
+        el_after = TestGeneration._mean_elevation_at_borders(w)
+        self.assertTrue(el_after <= el_before)
+
 
 if __name__ == '__main__':
     unittest.main()
